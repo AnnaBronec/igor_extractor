@@ -1,10 +1,9 @@
 import json
-import png
 import os
 import os.path
 import numpy as np
 from pprint import pformat
-
+import statistics
 import click
 from matplotlib import pyplot as plt
 from igor.binarywave import load as loadibw
@@ -62,7 +61,7 @@ def plot_data(values, total_time, path, list2=None):
 @click.option('--path', help='specify the path and filename: "Data/<date>/<filename>"')
 @click.option('--plot', default=True, help='show plot')
 @click.option('--store', default=True, help='store data: stores complete data as txt and values as json.')
-@click.option('--joined', default=False, help='join lists')
+@click.option('--joined', help='join lists')
 def run(path, plot, store, joined):
     # Extract complete data and values 
     data, values = extract_data(path)
@@ -84,11 +83,21 @@ def run(path, plot, store, joined):
             flat_lists[i].append(l[i])
     joined_lists = [] 
     total_time=0
+    listsofaverage = []
     for i in range(len(flat_lists)):
         joined_lists += flat_lists[i]
         total_time += time
+        listsofaverage.append(sum(flat_lists[i])/len(flat_lists[i]))
+
     print ("Recording time :", total_time)
-     
+    
+    np_flat_lists = np.array(flat_lists)
+    for i in range(len(np_flat_lists)):
+         np_flat_lists[i] = np.array(np_flat_lists[i])
+    averages = np.mean(np_flat_lists, axis=0)
+
+
+
     # Store data:
     if store:
         store_data(path, data, values)
@@ -99,5 +108,11 @@ def run(path, plot, store, joined):
         plot_data(joined_lists, total_time, path)
     elif plot and joined=="first_last":
         plot_data(flat_lists[0], time, path, flat_lists[-1])
+    elif plot and joined=="average":
+        mid= int( 0.5 * len(flat_lists))
+       # plot_data(flat_lists[mid], time ,path)
+        plot_data(averages, time ,path)
+       # plot_data(listsofaverage, time, path)
+        
 if __name__ == '__main__': 
     run()
