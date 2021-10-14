@@ -11,7 +11,7 @@
 5. Open  https://raw.githubusercontent.com/AnnaBronec/igor_extractor/master/ibw.py
 6. Download file or copy and paste to new folder and name it ibw.py 
 7. open command line and navigate to igor extractor folder
-8. python3 ibw.py --path="Data/input/t20Soma.ibw" --joined=average
+8. Run in command line ` python3 ibw.py --path="Data/input/t20Soma.ibw" --joined=average `
 
 
 
