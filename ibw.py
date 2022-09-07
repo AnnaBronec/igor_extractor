@@ -1,12 +1,33 @@
 import json
 import os
 import os.path
+import math
 import numpy as np
 from pprint import pformat
 import statistics
 import click
+import pandas as pd
 from matplotlib import pyplot as plt
 from igor.binarywave import load as loadibw
+from scipy.signal import argrelextrema
+
+def get_peaks(xs):
+    df = pd.DataFrame(xs, columns=['data'])
+    n = int(len(xs) / 20)
+    df['max'] = df.iloc[argrelextrema(df.data.values, np.greater_equal,
+                        order=n)[0]]['data']
+    peaks = []
+    average = sum(xs)/len(xs)
+    for i in range(len(df['max'])):
+        if not math.isnan(df['max'][i]) and df['max'][i] > average:
+           peaks.append([i, df['max'][i]]) 
+        else:
+           df['max'][i] = math.nan
+    print(f"num peaks: {len(peaks)}")
+    plt.scatter(df.index, df['max'], c='r')
+    plt.plot(df.index, df['data'])
+    plt.show()
+    return peaks
 
 
 def extract_data(path):
@@ -31,8 +52,8 @@ def plot_data(values, total_time, path, list2=None):
     listxachs=np.linspace(0, total_time, len(values))
     plt.plot(listxachs, values, linewidth=0.3, color="red")
     if list2 is not None:
-        plt.plot(listxachs, list2, linewidth=0.3, color="blue", label="last")
-    plt.xlabel("Time [min]",
+        plt.plot(listxachs, list2, linewidth=0.3, color="red", label="last")
+    plt.xlabel("Time [minutes]",
             family = 'serif',
             color='black',
             weight = 'normal',
@@ -44,16 +65,11 @@ def plot_data(values, total_time, path, list2=None):
             weight = 'normal',
             size = 10,
             labelpad = 5)
-    #x = np.array([listxachs])
-    #plt.xticks(np.arange(min(listxachs), max(listxachs)+1), 1)
-    #plt.xlim(0, 15600040)
-    #scale_factor = 1/20
-    #xmin, xmax = plt.xlim()
-    #plt.xlim(xmin * scale_factor, xmax * scale_factor)
-    #plt.savefig('graph.png', dpi=300, bbox_inches='tight')
-    path = path.replace('ibw','png')
+    path = path.replace('ibw','svg')
     path = path.replace('input','output')  #input, ouput = foldernames
-    plt.savefig(f'{path}')                 #only if you want to safe it
+    plt.savefig(f'{path}',format='svg')                 #only if you want to safe it
+  #  plt.savefig(f'{path}.eps', format='eps')
+   # plt.savefig(f'{path}.svg', format='svg')
     plt.show()
 
 
@@ -69,13 +85,14 @@ def run(path, plot, store, joined):
     print("joined: ", joined)
     
     stacks = len(values[0])
-    lists = len(values)
+    datapoints = len(values)
     DT = 5*10 ** -5
 
-    seconds = lists * DT
-    time = seconds / 60
+    seconds = datapoints * DT
+   # time = seconds / 60
+    time = seconds/ 20
 
-    print(f"Elements in list: {stacks} \nNumber of lists: {lists}")
+    print(f"Number of stacks: {stacks} \nDatapoints per stack: {datapoints}")
 
     flat_lists = [ list() for x in range(stacks)]
     for l in values:
@@ -88,15 +105,16 @@ def run(path, plot, store, joined):
         joined_lists += flat_lists[i]
         total_time += time
         listsofaverage.append(sum(flat_lists[i])/len(flat_lists[i]))
+    print(type(joined_lists[0]))
 
     print ("Recording time :", total_time)
-    
     np_flat_lists = np.array(flat_lists)
     for i in range(len(np_flat_lists)):
          np_flat_lists[i] = np.array(np_flat_lists[i])
     averages = np.mean(np_flat_lists, axis=0)
 
-
+    peaks = get_peaks(averages)
+    print(peaks)
 
     # Store data:
     if store:
